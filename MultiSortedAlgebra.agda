@@ -14,6 +14,7 @@ open import Data.Container.Indexed.FreeMonad       using (_⋆C_)
 open import Data.W.Indexed                         using (sup)
 
 open import Data.Product                           using (Σ; _×_; _,_; Σ-syntax); open Σ
+open import Data.Product.Relation.Binary.Pointwise.Dependent using () renaming (setoid to Π-setoid)
 open import Data.Sum                               using (_⊎_; inj₁; inj₂; [_,_])
 open import Data.Empty.Polymorphic                 using (⊥; ⊥-elim)
 
@@ -21,7 +22,7 @@ open import Function                               using (_∘_)
 open import Function.Bundles                       using (Func)
 
 open import Relation.Binary                        using (Setoid; IsEquivalence)
-open import Relation.Binary.PropositionalEquality  using (_≡_; refl)
+open import Relation.Binary.PropositionalEquality  using (_≡_; refl; →-to-⟶; setoid)
 open import Relation.Unary                         using (Pred)
 
 import Relation.Binary.Reasoning.Setoid as SetoidReasoning
@@ -454,6 +455,22 @@ module _ (Sig : Signature ℓˢ ℓᵒ ℓᵃ) where
 
 {- Q.E.D 2021-05-28 -}
 
+{- New material added by JC on 2021-05-20 -}
+
+  -- A product of models, indexed by some family $I$
+  module Product {I : Set ℓⁱ} where
+    open SetoidModel
+
+    ⨅ : {I : Set ℓⁱ}(𝒜 : I → SetoidModel ℓᵐ ℓᵉ ) → SetoidModel (ℓⁱ ⊔ ℓᵐ) (ℓⁱ ⊔ ℓᵉ)
+
+    ⨅ {I = I} M .Den s .Carrier = ∀ (i : I) → M i .Den s .Carrier
+    ⨅ {I = I} M .Den s ._≈_ = λ x y → ∀ (i : I) → M i .Den s ._≈_ (x i) (y i)
+    ⨅ {I = I} M .Den s .isEquivalence .IsEquivalence.refl = λ i → M i .Den s .isEquivalence .IsEquivalence.refl
+    ⨅ {I = I} M .Den s .isEquivalence .IsEquivalence.sym = λ x≈y i → M i .Den s .isEquivalence .IsEquivalence.sym (x≈y i)
+    ⨅ {I = I} M .Den s .isEquivalence .IsEquivalence.trans = λ x≈y y≈z i → M i .Den s .isEquivalence .IsEquivalence.trans (x≈y i) (y≈z i)
+    ⨅ {I = I} M .den {s} = record
+      { f = λ x i → M i .den {s} .Func.f (proj₁ x , λ r → proj₂ x r i)  -- λ 𝑓 𝑎 i → (𝑓 ̂ 𝒜 i) λ x → 𝑎 x i
+      ; cong = λ { (refl , z) i → M i .den {s} .cong ( refl , λ ar → z ar i)} }
 -- -}
 -- -}
 -- -}
