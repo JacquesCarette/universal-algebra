@@ -22,8 +22,11 @@ open import Function                               using (_∘_)
 open import Function.Bundles                       using (Func)
 
 open import Relation.Binary                        using (Setoid; IsEquivalence)
-open import Relation.Binary.PropositionalEquality  using (_≡_; refl; →-to-⟶; setoid)
+open import Relation.Binary.PropositionalEquality  as PE
+                                                   using (_≡_; refl; setoid)
 open import Relation.Unary                         using (Pred)
+open import Relation.Binary                        using (Rel)
+open import Relation.Binary.Indexed.Homogeneous    using (IsIndexedEquivalence; IRel; IndexedSetoid)
 
 import Relation.Binary.Reasoning.Setoid as SetoidReasoning
 
@@ -33,7 +36,7 @@ open Func renaming (f to apply)
 -- Letter ℓ denotes universe levels.
 
 variable
-  ℓ ℓ' ℓˢ ℓᵒ ℓᵃ ℓᵐ ℓᵉ ℓⁱ : Level
+  ℓ ℓ' ℓˢ ℓᵒ ℓᵃ ℓᵐ ℓᵉ ℓⁱ ℓᶜ : Level
   I : Set ℓⁱ
   S : Set ℓˢ
 
@@ -455,22 +458,62 @@ module _ (Sig : Signature ℓˢ ℓᵒ ℓᵃ) where
 
 {- Q.E.D 2021-05-28 -}
 
-{- New material added by JC on 2021-05-20 -}
+{- New material added by JC starting 2021-05-30 -}
 
-  -- A product of models, indexed by some family $I$
-  module Product {I : Set ℓⁱ} where
+  -- A 'large' product of models, indexed by some family $I$
+  module LargeProduct {I : Set ℓⁱ} (M : I → SetoidModel ℓᵐ ℓᵉ ) where
     open SetoidModel
+    open IndexedSetoid using (Carrierᵢ; _≈ᵢ_; isEquivalenceᵢ)
+    open IsIndexedEquivalence using (reflᵢ; symᵢ; transᵢ)
 
-    ⨅ : {I : Set ℓⁱ}(𝒜 : I → SetoidModel ℓᵐ ℓᵉ ) → SetoidModel (ℓⁱ ⊔ ℓᵐ) (ℓⁱ ⊔ ℓᵉ)
+    private
+      indSet : Sort → IndexedSetoid I _ _
+      indSet s .Carrierᵢ                i  = M i .Den s .Carrier
+      indSet s ._≈ᵢ_                   {i} = M i .Den s ._≈_
+      indSet s .isEquivalenceᵢ .reflᵢ  {i} = M i .Den s .isEquivalence .IsEquivalence.refl
+      indSet s .isEquivalenceᵢ .symᵢ   {i} = M i .Den s .isEquivalence .IsEquivalence.sym
+      indSet s .isEquivalenceᵢ .transᵢ {i} = M i .Den s .isEquivalence .IsEquivalence.trans
 
-    ⨅ {I = I} M .Den s .Carrier = ∀ (i : I) → M i .Den s .Carrier
-    ⨅ {I = I} M .Den s ._≈_ = λ x y → ∀ (i : I) → M i .Den s ._≈_ (x i) (y i)
-    ⨅ {I = I} M .Den s .isEquivalence .IsEquivalence.refl = λ i → M i .Den s .isEquivalence .IsEquivalence.refl
-    ⨅ {I = I} M .Den s .isEquivalence .IsEquivalence.sym = λ x≈y i → M i .Den s .isEquivalence .IsEquivalence.sym (x≈y i)
-    ⨅ {I = I} M .Den s .isEquivalence .IsEquivalence.trans = λ x≈y y≈z i → M i .Den s .isEquivalence .IsEquivalence.trans (x≈y i) (y≈z i)
-    ⨅ {I = I} M .den {s} = record
-      { f = λ x i → M i .den {s} .Func.f (proj₁ x , λ r → proj₂ x r i)  -- λ 𝑓 𝑎 i → (𝑓 ̂ 𝒜 i) λ x → 𝑎 x i
-      ; cong = λ { (refl , z) i → M i .den {s} .cong ( refl , λ ar → z ar i)} }
+      ss : Sort → Setoid _ _
+      ss s = IndexedSetoid.setoid (indSet s)
+
+      pres : (s : Sort) → Func (⟦ Ops ⟧s ss s) (ss s)
+      pres s .Func.f                      = λ { (o    , ar) i → M i .den {s} .Func.f    (o    , λ r → ar r i)}
+      pres s .Func.cong {o₁ , _} {o₂ , _} = λ { (refl , eq) i → M i .den {s} .Func.cong (refl , λ r → eq r i)}
+
+    ⨅ : SetoidModel (ℓⁱ ⊔ ℓᵐ) (ℓⁱ ⊔ ℓᵉ)
+    ⨅ .Den s = ss s
+    ⨅ .den {s} = pres s
+
+  -- A 'very small' product of models, indexed by some family $I$ indexed in Set₀
+  module SmallProduct {I : Set 0ℓ} (M : I → SetoidModel ℓᵐ ℓᵉ ) where
+    open SetoidModel
+    open IndexedSetoid using (Carrierᵢ; _≈ᵢ_; isEquivalenceᵢ)
+    open IsIndexedEquivalence using (reflᵢ; symᵢ; transᵢ)
+
+    private
+      indSet : Sort → IndexedSetoid I _ _
+      indSet s .Carrierᵢ                i  = M i .Den s .Carrier
+      indSet s ._≈ᵢ_                   {i} = M i .Den s ._≈_
+      indSet s .isEquivalenceᵢ .reflᵢ  {i} = M i .Den s .isEquivalence .IsEquivalence.refl
+      indSet s .isEquivalenceᵢ .symᵢ   {i} = M i .Den s .isEquivalence .IsEquivalence.sym
+      indSet s .isEquivalenceᵢ .transᵢ {i} = M i .Den s .isEquivalence .IsEquivalence.trans
+
+      ss : Sort → Setoid _ _
+      ss s = IndexedSetoid.setoid (indSet s)
+
+      pres : {s : Sort} → Func (⟦ Ops ⟧s ss s) (ss s)
+      pres .Func.f                      = λ { (o    , ar) i → M i .den .Func.f    (o    , λ r → ar r i)}
+      pres .Func.cong {o₁ , _} {o₂ , _} = λ { (refl , eq) i → M i .den .Func.cong (refl , λ r → eq r i)}
+
+    ⨅ : SetoidModel ℓᵐ ℓᵉ
+    ⨅ .Den s = ss s
+    ⨅ .den   = pres
+
+
+  -- Congruence
+  -- R-Commutes : (M : SetoidModel ℓᵐ ℓᵉ) → (R : IRel (λ s → M .SetoidModel.Den s .Carrier) ℓᶜ) → Set _
+  -- R-Commutes M R = (s : Sort) → ∀ {x y} → {!!} → R x y
 -- -}
 -- -}
 -- -}
