@@ -486,29 +486,12 @@ module _ (Sig : Signature ℓˢ ℓᵒ ℓᵃ) where
     ⨅ .den {s} = pres s
 
   -- A 'very small' product of models, indexed by some family $I$ indexed in Set₀
-  module SmallProduct {I : Set 0ℓ} (M : I → SetoidModel ℓᵐ ℓᵉ ) where
-    open SetoidModel
-    open IndexedSetoid using (Carrierᵢ; _≈ᵢ_; isEquivalenceᵢ)
-    open IsIndexedEquivalence using (reflᵢ; symᵢ; transᵢ)
+  module VerySmallProduct {ℓᵐ ℓᵉ} {I : Set 0ℓ} (M : I → SetoidModel ℓᵐ ℓᵉ ) = LargeProduct {I = I} M
 
-    private
-      indSet : Sort → IndexedSetoid I _ _
-      indSet s .Carrierᵢ                i  = M i .Den s .Carrier
-      indSet s ._≈ᵢ_                   {i} = M i .Den s ._≈_
-      indSet s .isEquivalenceᵢ .reflᵢ  {i} = M i .Den s .isEquivalence .IsEquivalence.refl
-      indSet s .isEquivalenceᵢ .symᵢ   {i} = M i .Den s .isEquivalence .IsEquivalence.sym
-      indSet s .isEquivalenceᵢ .transᵢ {i} = M i .Den s .isEquivalence .IsEquivalence.trans
-
-      ss : Sort → Setoid _ _
-      ss s = IndexedSetoid.setoid (indSet s)
-
-      pres : {s : Sort} → Func (⟦ Ops ⟧s ss s) (ss s)
-      pres .Func.f                      = λ { (o    , ar) i → M i .den .Func.f    (o    , λ r → ar r i)}
-      pres .Func.cong {o₁ , _} {o₂ , _} = λ { (refl , eq) i → M i .den .Func.cong (refl , λ r → eq r i)}
-
-    ⨅ : SetoidModel ℓᵐ ℓᵉ
-    ⨅ .Den s = ss s
-    ⨅ .den   = pres
+  -- test that very small products do not increase levels
+  private
+    _ : {I : Set 0ℓ} (M : I → SetoidModel ℓᵐ ℓᵉ) → SetoidModel ℓᵐ ℓᵉ
+    _ = VerySmallProduct.⨅
 
 
   -- Congruence
